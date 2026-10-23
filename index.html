@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Controle de Fornecedores · Hospital Vila da Serra</title>
+<style>
+:root{--bg:#f6f9fb;--card:#fff;--tx:#1d2b36;--mu:#6b7c88;--pr:#0f8b8d;--pr2:#e3f4f4;--ok:#1e9e5a;--er:#d64545;--bd:#e2e8ec}
+@media (prefers-color-scheme:dark){:root{--bg:#10181d;--card:#18232a;--tx:#e8eef2;--mu:#93a4af;--pr:#3cc0c2;--pr2:#17383a;--ok:#4cc88a;--er:#ef7a7a;--bd:#2a3841}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--tx)}
+header{background:var(--card);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+header img{height:46px}header h1{font-size:17px;margin:0;flex:1}header small{color:var(--mu);display:block;font-weight:400}
+main{max-width:1100px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:16px}
+input,select,button{font:inherit;padding:9px 11px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+button{cursor:pointer;background:var(--pr);color:#fff;border:0;font-weight:600}button.sec{background:var(--pr2);color:var(--pr)}button.dn{background:var(--er)}button.ok{background:var(--ok)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}.grid label{font-size:13px;color:var(--mu);display:flex;flex-direction:column;gap:4px}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.kpi{text-align:center;padding:12px;border-radius:10px;background:var(--pr2)}.kpi b{font-size:28px;display:block}.kpi span{font-size:13px;color:var(--mu)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}.bar input[type=search]{flex:1;min-width:200px;font-size:17px}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd)}th{color:var(--mu);font-size:12px;text-transform:uppercase}
+.b{padding:3px 9px;border-radius:99px;font-size:12px;font-weight:600}.b.y{background:#dcf5e7;color:#14733f}.b.n{background:#fdecec;color:#b53232}
+.tabs{display:flex;gap:8px;margin-bottom:14px}.tabs button{background:var(--pr2);color:var(--pr)}.tabs button.on{background:var(--pr);color:#fff}
+#login{max-width:340px;margin:12vh auto;text-align:center}#login input{width:100%;margin:6px 0}#login img{height:80px;margin-bottom:8px}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);max-width:380px;width:92%}
+.err{color:var(--er);font-size:13px;min-height:18px}.hide{display:none!important}
+@media(max-width:600px){.kpi b{font-size:22px}}
+</style>
+</head>
+<body>
+
+<div id="login" class="card">
+  <img src="logo.png" alt="Hospital Vila da Serra" onerror="this.style.display='none'">
+  <h2>Hospital Vila da Serra</h2>
+  <p style="color:var(--mu);margin-top:-8px">Controle de acesso de fornecedores</p>
+  <input id="lu" placeholder="Usuário" autocapitalize="none">
+  <input id="lp" type="password" placeholder="Senha">
+  <div class="err" id="le"></div>
+  <button style="width:100%" onclick="entrar()">Entrar</button>
+</div>
+
+<div id="app" class="hide">
+<header>
+  <img src="logo.png" alt="" onerror="this.style.display='none'">
+  <h1>Controle de Fornecedores<small id="who"></small></h1>
+  <button class="sec" onclick="auth.signOut()">Sair</button>
+</header>
+<main>
+  <div class="tabs hide" id="tabs">
+    <button class="on" id="t1" onclick="aba(1)">Painel do dia</button>
+    <button id="t2" onclick="aba(2)">Relatório mensal</button>
+  </div>
+
+  <section id="s1">
+    <div class="card hide" id="formBox">
+      <h3 style="margin-top:0">Cadastrar fornecedor / instrumentador</h3>
+      <div class="grid">
+        <label>Nome completo do visitante<input id="fn"></label>
+        <label>Empresa<input id="fe"></label>
+        <label>Tipo<select id="ft"><option>Fornecedor</option><option>Instrumentador</option></select></label>
+        <label>Setor<select id="fs"><option>CME</option><option>OPME</option><option>Engenharia Clínica</option><option>Almoxarifado</option><option>Centro de Relacionamento Médico</option><option>Outro</option></select></label>
+        <label>Data da visita<input id="fd" type="date"></label>
+        <label>Previsão de chegada<input id="fh" type="time"></label>
+        <label style="grid-column:1/-1">Observação (opcional)<input id="fo" maxlength="200" placeholder="Ex.: traz caixa pesada, placa do veículo, sala de destino..."></label>
+        <label>Autorizador (nome completo)<input id="an"></label>
+        <label>CPF do autorizador<input id="ac" inputmode="numeric" placeholder="000.000.000-00" maxlength="14"></label>
+      </div>
+      <div class="err" id="fe2"></div>
+      <button onclick="cadastrar()">Liberar entrada</button>
+    </div>
+
+    <div class="card">
+      <div class="bar">
+        <input type="search" id="q" placeholder="Buscar fornecedor pelo nome..." oninput="render()">
+        <input type="date" id="dia" onchange="assinar()">
+      </div>
+      <div class="kpis">
+        <div class="kpi"><b id="k1">0</b><span>Esperados</span></div>
+        <div class="kpi"><b id="k2" style="color:var(--ok)">0</b><span>Chegaram</span></div>
+        <div class="kpi"><b id="k3" style="color:var(--er)">0</b><span>Não chegaram</span></div>
+      </div>
+    </div>
+    <div class="card tw"><table><thead><tr><th>Visitante</th><th>Previsão</th><th>Empresa</th><th>Setor</th><th>Autorizado por</th><th>Status</th><th></th></tr></thead><tbody id="tb"></tbody></table></div>
+  </section>
+
+  <section id="s2" class="hide">
+    <div class="card">
+      <div class="bar"><input type="month" id="mes" onchange="relatorio()"><button class="sec" onclick="csv()">Baixar CSV</button></div>
+      <div class="kpis">
+        <div class="kpi"><b id="r1">0</b><span>Liberados no mês</span></div>
+        <div class="kpi"><b id="r2" style="color:var(--ok)">0</b><span>Compareceram</span></div>
+        <div class="kpi"><b id="r3" style="color:var(--er)">0</b><span>Faltaram</span></div>
+      </div>
+    </div>
+    <div class="card tw"><table><thead><tr><th>Data</th><th>Visitante</th><th>Empresa</th><th>Setor</th><th>Autorizador</th><th>Status</th></tr></thead><tbody id="rb"></tbody></table></div>
+  </section>
+</main>
+<p style="text-align:center;color:var(--mu);font-size:12px;margin:20px">Versão 3 · com campo Observação</p>
+</div>
+
+<dialog id="dlg">
+  <h3 style="margin-top:0">Confirmar exclusão</h3>
+  <p style="font-size:13px;color:var(--mu)" id="dtxt"></p>
+  <input id="xn" placeholder="Nome completo" style="width:100%;margin-bottom:8px">
+  <input id="xc" placeholder="CPF" maxlength="14" inputmode="numeric" style="width:100%">
+  <div class="err" id="xe"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button class="sec" onclick="dlg.close()">Cancelar</button><button class="dn" onclick="excluir()">Excluir</button></div>
+</dialog>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+// ====== 1) COLE AQUI A CONFIGURAÇÃO DO SEU PROJETO FIREBASE ======
+const firebaseConfig={apiKey:"AIzaSyCY0DDSTeFkjaEwL6LE6iLt0JdKHwExVgs",authDomain:"fila-viladaserra.firebaseapp.com",projectId:"fila-viladaserra",appId:"1:1064151600235:web:26476720ea179219a6b52e"};
+// ====== 2) Usuários (criados no Firebase como usuario@hvs.app) ======
+const PERFIL={jean:"master",portaria:"portaria",cme:"CME",opme:"OPME",engclinica:"Engenharia Clínica",almoxarifado:"Almoxarifado",crm:"Centro de Relacionamento Médico"};
+const DOM="@hvs.app";
+
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth(),db=firebase.firestore(),col=db.collection("fornecedores");
+let perfil="",user="",meuSetor="",itens=[],unsub=null,alvo=null,rel=[];
+const $=id=>document.getElementById(id);
+const hoje=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dg=s=>String(s).replace(/\D/g,"");
+function cpfOk(s){s=dg(s);if(s.length!=11||/^(\d)\1+$/.test(s))return false;
+ for(let t=9;t<11;t++){let n=0;for(let i=0;i<t;i++)n+=s[i]*(t+1-i);if((n*10%11%10)!=s[t])return false}return true}
+const mask=e=>{e.value=dg(e.value).slice(0,11).replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2")};
+$("ac").oninput=e=>mask(e.target);$("xc").oninput=e=>mask(e.target);
+$("lp").onkeydown=e=>{if(e.key=="Enter")entrar()};
+
+function entrar(){
+ const u=$("lu").value.trim().toLowerCase().split("@")[0];$("le").textContent="";
+ auth.signInWithEmailAndPassword(u+DOM,$("lp").value).catch(e=>{
+  const m={"auth/invalid-credential":"Usuário ou senha inválidos (confira se o usuário foi criado no Firebase).","auth/user-not-found":"Usuário não existe no Firebase.","auth/wrong-password":"Senha incorreta.","auth/operation-not-allowed":"Login por E-mail/senha não está ativado no Firebase.","auth/invalid-api-key":"apiKey do Firebase inválida no index.html.","auth/api-key-not-valid.-please-pass-a-valid-api-key.":"apiKey do Firebase inválida no index.html.","auth/unauthorized-domain":"Domínio não autorizado no Firebase (Authentication > Configurações > Domínios autorizados).","auth/network-request-failed":"Sem conexão com o Firebase.","auth/too-many-requests":"Muitas tentativas. Aguarde alguns minutos."};
+  $("le").textContent=(m[e.code]||"Erro")+" ["+e.code+"]";});
+}
+auth.onAuthStateChanged(u=>{
+ if(!u){$("login").classList.remove("hide");$("app").classList.add("hide");if(unsub)unsub();return}
+ user=u.email.replace(DOM,"");const pf=PERFIL[user];perfil=pf=="master"||pf=="portaria"?pf:"setor";meuSetor=perfil=="setor"?pf:"";
+ $("login").classList.add("hide");$("app").classList.remove("hide");
+ $("who").textContent=({master:"Master · Jean Lucan",portaria:"Portaria",setor:"Setor · "+meuSetor})[perfil];if(meuSetor){$("fs").value=meuSetor}$("fs").disabled=perfil=="setor";
+ $("formBox").classList.toggle("hide",perfil=="portaria");
+ $("tabs").classList.toggle("hide",perfil!="master");
+ $("dia").value=$("fd").value=hoje();$("mes").value=hoje().slice(0,7);
+ assinar();
+});
+
+function assinar(){
+ if(unsub)unsub();
+ unsub=col.where("data","==",$("dia").value).onSnapshot(s=>{itens=s.docs.map(d=>({id:d.id,...d.data()})).filter(x=>!x.excluido);render()},
+  e=>alert("Erro de leitura: "+e.message));
+}
+function render(){
+ const q=$("q").value.trim().toLowerCase(),ch=itens.filter(x=>x.chegou).length;
+ $("k1").textContent=itens.length;$("k2").textContent=ch;$("k3").textContent=itens.length-ch;
+ const l=itens.filter(x=>x.nome.toLowerCase().includes(q)).sort((a,b)=>(a.hora||"99").localeCompare(b.hora||"99")||a.nome.localeCompare(b.nome));
+ $("tb").innerHTML=l.map(x=>{
+  const cpf=perfil=="portaria"?"***."+dg(x.autCpf).slice(3,6)+".***-**":x.autCpf;
+  const st=x.chegou?`<span class="b y">Chegou ${x.chegadaEm?new Date(x.chegadaEm).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}):""}</span>`:`<span class="b n">Aguardando</span>`;
+  let ac="";
+  if(!x.chegou&&perfil=="portaria"||!x.chegou&&perfil!="portaria")ac+=perfil=="portaria"?`<button class="ok" onclick="chegou('${x.id}')">OK, chegou</button> `:"";
+  if(perfil=="master"||perfil=="setor"&&x.setor==meuSetor)ac+=`<button class="dn" onclick="pedirExcluir('${x.id}')">Excluir</button>`;
+  return `<tr><td><b>${esc(x.nome)}</b><br><small style="color:var(--mu)">${esc(x.tipo)}</small>${x.obs?`<br><small style="color:var(--pr);font-weight:600">📝 ${esc(x.obs)}</small>`:""}</td><td><b>${esc(x.hora||"--:--")}</b></td><td>${esc(x.empresa)}</td><td>${esc(x.setor)}</td><td>${esc(x.autNome)}<br><small style="color:var(--mu)">CPF ${esc(cpf)}</small></td><td>${st}</td><td>${ac}</td></tr>`}).join("")
+  ||`<tr><td colspan="7" style="text-align:center;color:var(--mu)">Nenhum registro.</td></tr>`;
+}
+function chegou(id){col.doc(id).update({chegou:true,chegadaEm:Date.now(),chegouPor:user})}
+
+function cadastrar(){
+ const v={nome:$("fn").value.trim(),empresa:$("fe").value.trim(),tipo:$("ft").value,setor:$("fs").value,data:$("fd").value,hora:$("fh").value,obs:$("fo").value.trim(),autNome:$("an").value.trim(),autCpf:$("ac").value};
+ const e=$("fe2");e.textContent="";
+ if(!v.nome||!v.empresa||!v.data||!v.hora)return e.textContent="Preencha nome, empresa, data e previsão de chegada.";
+ if(v.autNome.split(/\s+/).length<2)return e.textContent="Informe o nome completo do autorizador.";
+ if(!cpfOk(v.autCpf))return e.textContent="CPF do autorizador inválido.";
+ col.add({...v,chegou:false,excluido:false,criadoEm:Date.now(),criadoPor:user}).then(()=>{["fn","fe","an","ac","fh","fo"].forEach(i=>$(i).value="")}).catch(x=>e.textContent=x.message);
+}
+
+function pedirExcluir(id){alvo=itens.find(x=>x.id==id);$("xn").value=$("xc").value=$("xe").textContent="";
+ $("dtxt").textContent=perfil=="setor"?"Informe nome completo e CPF de quem cadastrou esta liberação ("+alvo.autNome+").":"Informe seu nome completo e CPF para registrar a exclusão.";dlg.showModal()}
+function excluir(){
+ const n=$("xn").value.trim(),c=$("xc").value,e=$("xe");
+ if(n.split(/\s+/).length<2||!cpfOk(c))return e.textContent="Informe nome completo e CPF válido.";
+ if(perfil=="setor"&&(dg(c)!=dg(alvo.autCpf)))return e.textContent="CPF não confere com o de quem cadastrou.";
+ col.doc(alvo.id).update({excluido:true,excluidoPor:n,excluidoCpf:c,excluidoEm:Date.now(),excluidoUser:user}).then(()=>dlg.close()).catch(x=>e.textContent=x.message);
+}
+
+function aba(n){$("s1").classList.toggle("hide",n!=1);$("s2").classList.toggle("hide",n!=2);$("t1").classList.toggle("on",n==1);$("t2").classList.toggle("on",n==2);if(n==2)relatorio()}
+function relatorio(){
+ const m=$("mes").value;if(!m)return;
+ col.where("data",">=",m+"-01").where("data","<=",m+"-31").get().then(s=>{
+  rel=s.docs.map(d=>d.data()).filter(x=>!x.excluido).sort((a,b)=>a.data.localeCompare(b.data));
+  const ok=rel.filter(x=>x.chegou).length;
+  $("r1").textContent=rel.length;$("r2").textContent=ok;$("r3").textContent=rel.length-ok;
+  $("rb").innerHTML=rel.map(x=>`<tr><td>${x.data.split("-").reverse().join("/")} ${esc(x.hora||"")}</td><td>${esc(x.nome)}${x.obs?`<br><small style="color:var(--mu)">${esc(x.obs)}</small>`:""}</td><td>${esc(x.empresa)}</td><td>${esc(x.setor)}</td><td>${esc(x.autNome)}</td><td><span class="b ${x.chegou?"y":"n"}">${x.chegou?"Veio":"Não veio"}</span></td></tr>`).join("")
+   ||`<tr><td colspan="6" style="text-align:center;color:var(--mu)">Sem registros no mês.</td></tr>`;
+ });
+}
+function csv(){
+ const h=["Data","Previsão","Visitante","Empresa","Tipo","Setor","Autorizador","CPF Autorizador","Observação","Status"];
+ const r=rel.map(x=>[x.data,x.hora||"",x.nome,x.empresa,x.tipo,x.setor,x.autNome,x.autCpf,x.obs||"",x.chegou?"Veio":"Nao veio"]);
+ const t=[h,...r].map(l=>l.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(";")).join("\n");
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["\ufeff"+t],{type:"text/csv"}));a.download="relatorio-"+$("mes").value+".csv";a.click();
+}
+</script>
+</body>
+</html>
